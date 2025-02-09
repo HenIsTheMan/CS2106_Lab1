@@ -3,6 +3,8 @@
 #include <string.h>
 #include "dir.h"
 
+///Me: Each node is a file
+
 // Logging function: Here we just output to stderr
 // Call this to print out any error message, 
 // e.g. file not found, file already exists, etc.
@@ -30,9 +32,12 @@ void writelog(char *msg) {
 //
 
 void init_hashtable(TLinkedList *hashtable[], int len) {
+    for(int i = 0; i < len; ++i){
+        hashtable[i] = NULL;
+    }
 }
 
-// Returns the head of the linked list that MAY contain  the file identified 
+// Returns the head of the linked list that MAY contain the file identified 
 // by "filename". You need this because the llist routines require a
 // head variable in order to access the linked list. This function has
 // been done for you. If the linked list does not contain "filename",
@@ -47,7 +52,7 @@ void init_hashtable(TLinkedList *hashtable[], int len) {
 //      hashtable = The hash table iteself
 //      len = Number of entries in the hash table.
 // RETURNS: The linked list that may contain "filename". If not, the 
-//          data for "filename" can be inserted into this list.
+//          data for "filename" (Me: node containing filename) can be inserted into this list.
 //
 
 TLinkedList *get_filelist(char *filename, int (*hashfun)(char *, int), TLinkedList *hashtable[], int len) {
@@ -66,6 +71,7 @@ TLinkedList *get_filelist(char *filename, int (*hashfun)(char *, int), TLinkedLi
 // PRE: filename = Name of file
 //      hashfun = Hash function
 //      hashtable = Hash table
+//      len = Number of entries in the hash table.
 //      newentry = The head value returned by insert, delete
 //          Note that this value may not necessarily change
 //          but we should call update_hashtable anyway just in case.
@@ -73,7 +79,6 @@ TLinkedList *get_filelist(char *filename, int (*hashfun)(char *, int), TLinkedLi
 // POST: newentry is written to hashtable[ndx], where ndx
 //      is the index value returned by hashfun
 //
-
 
 void update_hashtable(char *filename, int (*hashfun)(char *, int), 
     TLinkedList *hashtable[], int len, TLinkedList *newentry) {
@@ -98,7 +103,17 @@ void update_hashtable(char *filename, int (*hashfun)(char *, int),
 //
 
 TLinkedList *find_file(char *filename, int (*hashfun)(char *, int), TLinkedList *hashtable[], int len) {
+    TLinkedList* nodePtr = get_filelist(filename, hashfun, hashtable, len); //Get head of hash table for filename
 
+    while(nodePtr != NULL){ //Check every node in hash table
+        if(strcmp(nodePtr->filename, filename) == 0){ //If same...
+            return nodePtr; //Return node containing filename
+        }
+
+        nodePtr = nodePtr->next;
+    }
+
+    return NULL; //Hash table for filename does not exist (nodePtr == NULL on init) or it exists but node containing filename does not exist
 }
 
 // Add a new file
@@ -116,8 +131,17 @@ TLinkedList *find_file(char *filename, int (*hashfun)(char *, int), TLinkedList 
 //              being changed.
 //
 
+void add_file(char *filename, int filesize, int startblock, int (*hashfun)(char *, int), TLinkedList *hashtable[], int len) {
+    if(find_file(filename, hashfun, hashtable, len) != NULL){
+        writelog("ERROR: file already exists");
+        return;
+    }
 
-void add_file(char *filename, int filesize, int startblock,
+    TLinkedList* headNodePtr = get_filelist(filename, hashfun, hashtable, len); //Get head of hash table for filename
+
+    insert_llist(&headNodePtr, create_node(filename, filesize, startblock));
+
+    update_hashtable(filename, hashfun, hashtable, len, headNodePtr); //Call "just in case"
 }
 
 // Delete file. Remove the file's entry from the directory
@@ -130,7 +154,18 @@ void add_file(char *filename, int filesize, int startblock,
 //      HINT: The head might be changed.
 
 void delete_file(char *filename, int (*hashfun)(char *, int), TLinkedList *hashtable[], int len) {
+    TLinkedList* nodePtr = find_file(filename, hashfun, hashtable, len);
 
+    if(nodePtr == NULL){
+        writelog("ERROR: file not found");
+        return;
+    }
+
+    TLinkedList* headNodePtr = get_filelist(filename, hashfun, hashtable, len); //Get head of hash table for filename
+
+    delete_llist(&headNodePtr, nodePtr);
+
+    update_hashtable(filename, hashfun, hashtable, len, headNodePtr); //Call "just in case"
 }
 
 // Rename a file.
@@ -145,12 +180,21 @@ void delete_file(char *filename, int (*hashfun)(char *, int), TLinkedList *hasht
 
 void rename_file(char *old_filename, char *new_filename, int (*hashfun)(char *, int),
     TLinkedList *hashtable[], int len) {
+    TLinkedList* nodePtr = find_file(old_filename, hashfun, hashtable, len);
 
+    if(nodePtr == NULL){
+        writelog("ERROR: file not found");
+    } else{
+        add_file(new_filename, nodePtr->filesize, nodePtr->startblock, hashfun, hashtable, len);
+
+        delete_file(old_filename, hashfun, hashtable, len); //Must be below add_file since nodePtr is used in add_file
+    }
 }
 
 // Prints the details of a file. Implemented for you.
 // PRE: node = node to be printed.
 // POST: The contents of node are printed.
+
 void print_node(TLinkedList *node) {
     printf("%-30s\t\t%6d\t\t%6d\n", node->filename, node->filesize, node->startblock);
 }
@@ -169,6 +213,8 @@ void listdir(TLinkedList *hashtable[], int len) {
     printf("\nFilename\t\t\tFile Size\t\tStart Block\n\n");
 
     // Implement the rest of this function below.
-
+    for(int i = 0; i < len; ++i){
+        traverse(&hashtable[i], print_node);
+    }
 }
 

@@ -136,4 +136,12 @@ int main() {
     else
         printf("ERROR: File still exists!\n");
 
+    //* Me: Delete the rest of the files
+    delete_file(fnames[0].filename, hash, hashtable, TABLE_LEN);
+    delete_file(fnames[2].filename, hash, hashtable, TABLE_LEN);
+    delete_file(fnames[3].filename, hash, hashtable, TABLE_LEN);
+    delete_file(fnames[4].filename, hash, hashtable, TABLE_LEN);
+    delete_file(fnames[5].filename, hash, hashtable, TABLE_LEN);
+    delete_file(NEW_FILE, hash, hashtable, TABLE_LEN);
+    //*/
 }
