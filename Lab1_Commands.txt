@@ -1,0 +1,3 @@
+DEMO 1: valgrind --track-origins=yes --leak-check=full ./testr
+DEMO 2: valgrind --track-origins=yes --leak-check=full ./testlist
+DEMO 3: valgrind --track-origins=yes --leak-check=full ./testdir
